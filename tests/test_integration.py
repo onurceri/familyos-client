@@ -1,7 +1,8 @@
 """Against a real FamilyOS: every read, and write-and-undo cycles that leave the family as they found it.
 
 Skipped unless ``FAMOS_URL`` and ``FAMOS_TOKEN`` are set. Use a scratch family: the key needs a role that may
-change the calendar, lists and chores, and the app must be in ``apply`` mode. Run it with
+change the calendar, lists and chores and manage the board (an app's notes have no author, so only a manager may
+change them), and the app must be in ``apply`` mode. Run it with
 ``pytest -m integration --no-cov``.
 """
 
@@ -203,6 +204,21 @@ async def test_board_note(live: FamilyOS) -> None:
         await live.create_note("familyos-client test note", ends_on=dt.date.today(), idempotency_key=uuid.uuid4().hex)
     ).result
     assert made_note.text == "familyos-client test note"
+    edited = made(
+        await live.patch_note(made_note.id, text="familyos-client edited", ends_on=None, if_match=made_note.version)
+    ).result
+    assert edited.text == "familyos-client edited" and edited.ends_on is None and edited.version > made_note.version
+    with pytest.raises(PreconditionFailed):
+        await live.patch_note(made_note.id, paper="note-2", if_match=made_note.version)
+    assert made(await live.delete_note(made_note.id)).result.removed
+    assert not made(await live.delete_note(made_note.id)).result.removed
+
+
+async def test_waiting_suggestions_are_listed(live: FamilyOS) -> None:
+    drafts = [d async for d in live.iter_drafts()]
+    page = await live.list_drafts("waiting", limit=1)
+    assert len(page.items) <= 1 and page.time_zone
+    assert all(d.status in {"waiting", "failed"} and not d.can_decide for d in drafts)
 
 
 async def test_a_wrong_key_is_refused() -> None:

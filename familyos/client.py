@@ -29,6 +29,7 @@ from .models import (
     UNSET,
     Applied,
     BoardNote,
+    BoardNoteDeleted,
     Changes,
     Chore,
     ChoreCompleted,
@@ -36,6 +37,7 @@ from .models import (
     Discovery,
     Draft,
     Drafted,
+    DraftSummary,
     ErrorCode,
     Event,
     EventDeleted,
@@ -383,6 +385,32 @@ class FamilyOS:
         """How a change that waited for a person ended. Only the app (and member) that made it can read it."""
         _, _, body = await self._send("GET", f"/drafts/{_id(draft_id)}", on_behalf_of=on_behalf_of)
         return _decode(Draft.from_dict, body)
+
+    async def list_drafts(
+        self,
+        status: str = "waiting",
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        on_behalf_of: OnBehalfOf = UNSET,
+    ) -> Page[DraftSummary]:
+        """One page of the suggestions that wait for a person.
+
+        An app alone sees its own; an app acting for a member sees what that member would see. Only
+        ``"waiting"`` is known for now.
+        """
+        return await self._read(
+            "/drafts",
+            self._page(DraftSummary),
+            params={"status": status, "limit": limit, "cursor": cursor},
+            on_behalf_of=on_behalf_of,
+        )
+
+    def iter_drafts(
+        self, status: str = "waiting", *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET
+    ) -> AsyncIterator[DraftSummary]:
+        """Every suggestion that waits for a person."""
+        return self._pages("/drafts", DraftSummary, {"status": status, "limit": limit}, on_behalf_of)
 
     async def changes(self, since: int | None = None, *, on_behalf_of: OnBehalfOf = UNSET) -> Changes:
         """What changed since ``since`` (a cursor). Without it, answers where "now" is, with no changes.
@@ -1040,6 +1068,49 @@ class FamilyOS:
             "/board/notes",
             BoardNote.from_dict,
             body=_present({"text": text, "paper": paper, "pinned": pinned, "endsOn": ends_on}),
+            if_match=if_match,
+            idempotency_key=idempotency_key,
+            on_behalf_of=on_behalf_of,
+        )
+
+    async def patch_note(
+        self,
+        note_id: str,
+        *,
+        text: str | Unset = UNSET,
+        paper: str | Unset = UNSET,
+        ends_on: dt.date | Unset | None = UNSET,
+        if_match: IfMatch = None,
+        idempotency_key: str | None = None,
+        on_behalf_of: OnBehalfOf = UNSET,
+    ) -> Applied[BoardNote] | Drafted:
+        """Change the fields you pass and keep the rest; ``ends_on=None`` lets the note stay.
+
+        Only the note's author or someone who manages the board may.
+        """
+        return await self._write(
+            "PATCH",
+            f"/board/notes/{_id(note_id)}",
+            BoardNote.from_dict,
+            body=_given({"text": text, "paper": paper, "endsOn": ends_on}),
+            if_match=if_match,
+            idempotency_key=idempotency_key,
+            on_behalf_of=on_behalf_of,
+        )
+
+    async def delete_note(
+        self,
+        note_id: str,
+        *,
+        if_match: IfMatch = None,
+        idempotency_key: str | None = None,
+        on_behalf_of: OnBehalfOf = UNSET,
+    ) -> Applied[BoardNoteDeleted] | Drafted:
+        """Take a note off the board. Only its author or someone who manages the board may."""
+        return await self._write(
+            "DELETE",
+            f"/board/notes/{_id(note_id)}",
+            BoardNoteDeleted.from_dict,
             if_match=if_match,
             idempotency_key=idempotency_key,
             on_behalf_of=on_behalf_of,

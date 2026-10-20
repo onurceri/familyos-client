@@ -307,3 +307,32 @@ async def test_304_without_a_cache_is_an_error(client: FamilyOS, mocked: aioresp
     route(mocked, "GET", "/lists/tasks", status=304)
     with pytest.raises(FamilyOSError):
         await client.list_tasks()
+
+
+def draft_summary(**over: Any) -> dict[str, Any]:
+    return {
+        "id": "draft_1",
+        "status": "waiting",
+        "extension": "calendar",
+        "title": "Add dentist on Friday",
+        "subject": None,
+        "proposedAt": "2026-10-20T08:00:00+03:00",
+        "proposedBy": "Leo via Home Assistant",
+        "canDecide": False,
+        **over,
+    }
+
+
+async def test_list_and_iterate_waiting_drafts(client: FamilyOS, mocked: aioresponses) -> None:
+    route(mocked, "GET", "/drafts", payload=page([draft_summary()]))
+    result = await client.list_drafts(limit=5, on_behalf_of="member_leo")
+    draft = result.items[0]
+    assert draft.title == "Add dentist on Friday" and draft.subject is None and not draft.can_decide
+    assert draft.proposed_at.utcoffset() == dt.timedelta(hours=3)
+    _, _, kwargs = last(mocked)
+    assert kwargs["params"] == {"status": "waiting", "limit": "5"}
+    assert kwargs["headers"]["X-FamilyOS-On-Behalf-Of"] == "member_leo"
+
+    route(mocked, "GET", "/drafts", payload=page([draft_summary()], next="n"))
+    route(mocked, "GET", "/drafts", payload=page([draft_summary(id="draft_2", status="failed")]))
+    assert [d.id async for d in client.iter_drafts()] == ["draft_1", "draft_2"]

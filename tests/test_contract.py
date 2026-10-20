@@ -21,9 +21,11 @@ SPEC: dict[str, Any] = json.loads(resources.files("familyos").joinpath("openapi/
 SCHEMAS: dict[str, Any] = SPEC["components"]["schemas"]
 
 # Operations whose method is not named after the operation.
-RENAMED_OPERATIONS = {"core.listChanges": "changes"}
+RENAMED_OPERATIONS = {"core.listChanges": "changes", "board.editNote": "patch_note", "board.removeNote": "delete_note"}
 # Parameters whose Python name is not the snake_case of the API's.
 RENAMED_PARAMETERS = {"from": "from_date", "to": "to_date"}
+# Required parameters the client defaults (the only value there is).
+DEFAULTED_PARAMETERS = {"status"}
 # Parameters the client sets itself.
 AUTOMATIC_PARAMETERS = {"if-none-match"}
 # Methods that are not operations.
@@ -89,7 +91,7 @@ def test_every_operation_has_a_method(operation_id: str, http: str, path: str, o
         python = RENAMED_PARAMETERS.get(parameter["name"]) or snake(parameter["name"].removeprefix("x-familyos-"))
         python = python.replace("-", "_")
         assert python in signature.parameters, f"{name} lacks {python} ({parameter['in']} {parameter['name']})"
-        if parameter.get("required"):
+        if parameter.get("required") and python not in DEFAULTED_PARAMETERS:
             assert signature.parameters[python].default is inspect.Parameter.empty or parameter["in"] == "path"
 
     body = op.get("requestBody")
@@ -140,6 +142,8 @@ MODELS: dict[str, type] = {
     "ChoreDetail": models.ChoreDetail,
     "BoardNote": models.BoardNote,
     "Draft": models.Draft,
+    "DraftSummary": models.DraftSummary,
+    "BoardNoteDeleted": models.BoardNoteDeleted,
     "Changes": models.Changes,
     "EventDeleted": models.EventDeleted,
     "TaskDeleted": models.TaskDeleted,

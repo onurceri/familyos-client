@@ -409,3 +409,34 @@ async def test_patch_event_without_an_occurrence(client: FamilyOS, mocked: aiore
     route(mocked, "PATCH", "/calendar/events/cal_event_1", payload=applied(event()))
     await client.patch_event("cal_event_1", title="x")
     assert "occurrence" not in body_of(mocked)
+
+
+async def test_patch_note_sends_only_what_was_given(client: FamilyOS, mocked: aioresponses) -> None:
+    route(mocked, "PATCH", "/board/notes/board_note_1", payload=applied(note(text="Later")))
+    result = await client.patch_note("board_note_1", text="Later", ends_on=None, if_match=2, on_behalf_of="member_leo")
+    assert isinstance(result, Applied) and result.result.text == "Later"
+    assert body_of(mocked) == {"text": "Later", "endsOn": None}
+    assert headers_of(mocked)["If-Match"] == '"v2"'
+    assert headers_of(mocked)["X-FamilyOS-On-Behalf-Of"] == "member_leo"
+
+    route(mocked, "PATCH", "/board/notes/board_note_1", payload=applied(note()))
+    await client.patch_note("board_note_1", paper="note-3", ends_on=dt.date(2026, 10, 25), idempotency_key="k")
+    assert body_of(mocked) == {"paper": "note-3", "endsOn": "2026-10-25"}
+    assert headers_of(mocked)["Idempotency-Key"] == "k"
+
+
+async def test_delete_note(client: FamilyOS, mocked: aioresponses) -> None:
+    route(mocked, "DELETE", "/board/notes/board_note_1", payload=applied({"removed": True}))
+    result = await client.delete_note("board_note_1", if_match=2, idempotency_key="k")
+    assert isinstance(result, Applied) and result.result.removed
+    assert headers_of(mocked)["If-Match"] == '"v2"'
+    assert headers_of(mocked)["Idempotency-Key"] == "k"
+
+    route(
+        mocked,
+        "DELETE",
+        "/board/notes/board_note_1",
+        status=202,
+        payload={"status": "drafted", "draftId": "d", "timeZone": TZ},
+    )
+    assert isinstance(await client.delete_note("board_note_1"), Drafted)

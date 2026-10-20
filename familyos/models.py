@@ -455,6 +455,13 @@ class BoardNote(Model):
 
 
 @dataclass(frozen=True)
+class BoardNoteDeleted(Model):
+    """The answer to taking a note off the board. `removed` is false when it was already gone."""
+
+    removed: bool
+
+
+@dataclass(frozen=True)
 class Draft(Model):
     """A change that waited for a person: how it ended."""
 
@@ -466,6 +473,20 @@ class Draft(Model):
     decided_at: dt.datetime | None
     time_zone: str
     result: Any = None
+
+
+@dataclass(frozen=True)
+class DraftSummary(Model):
+    """A suggestion that waits for a person to decide (or that failed and waits to be tried again)."""
+
+    id: str
+    status: str
+    extension: str
+    title: str
+    subject: str | None
+    proposed_at: dt.datetime
+    proposed_by: str | None
+    can_decide: bool
 
 
 @dataclass(frozen=True)

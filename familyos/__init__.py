@@ -18,6 +18,7 @@ from .models import (
     UNSET,
     Applied,
     BoardNote,
+    BoardNoteDeleted,
     Caller,
     CallerApp,
     Change,
@@ -31,6 +32,7 @@ from .models import (
     Draft,
     Drafted,
     DraftStatus,
+    DraftSummary,
     ErrorCode,
     Event,
     EventDeleted,
@@ -60,7 +62,7 @@ from .models import (
     Weekday,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "UNSET",
@@ -68,6 +70,7 @@ __all__ = [
     "AuthenticationError",
     "BadRequestError",
     "BoardNote",
+    "BoardNoteDeleted",
     "Caller",
     "CallerApp",
     "Change",
@@ -83,6 +86,7 @@ __all__ = [
     "Discovery",
     "Draft",
     "DraftStatus",
+    "DraftSummary",
     "Drafted",
     "ErrorCode",
     "Event",

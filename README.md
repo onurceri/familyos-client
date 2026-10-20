@@ -59,15 +59,19 @@ The client never closes a session you give it. Without `session=` it makes one a
   An all-day event's `start`/`end` are `date`. Fields the library does not know are ignored, so a newer FamilyOS
   does not break an older library.
 - **Lists** come as a `Page` (`items`, `next`, `time_zone`) from `list_tasks()`, `list_chores()`,
-  `list_notes()`, `list_occurrences()`, `list_shopping_lists()` and `list_shopping_items()`. The `iter_*` twins
+  `list_notes()`, `list_drafts()`, `list_occurrences()`, `list_shopping_lists()` and `list_shopping_items()`. The `iter_*` twins
   (`async for task in famos.iter_tasks()`) follow the pages for you.
 - **Changes** return `Applied[T]` (`result`, `etag`, `time_zone`, `replayed`) or `Drafted` (`draft_id`) when the
   change waits for a person to approve it. Follow a draft with `await famos.get_draft(draft_id)`.
+- **Suggestions that wait** are listed with `list_drafts()` (or `async for draft in famos.iter_drafts()`), as
+  `DraftSummary` (`title`, `subject`, `proposed_by`, `status`). An app alone sees its own; an app acting for a member
+  sees what that member would see. Only a person decides one, in FamilyOS itself (`can_decide` is always false here).
 - **Every operation** of the API has a method of the same name in snake_case: `create_event`, `patch_event`,
   `replace_event`, `delete_event`, `get_event`, `list_occurrences`, `add_shopping_items`,
   `add_shopping_items_default` (the default list, no id needed),
   `complete_shopping_item`, `uncheck_shopping_item`, `add_task`, `complete_task`, `reopen_task`, `complete_chore`,
-  `undo_completion`, `create_note`, `discover`, `get_draft`, `changes` and the rest.
+  `undo_completion`, `create_note`, `patch_note`, `delete_note`, `discover`, `get_draft`, `list_drafts`, `changes`
+  and the rest.
 
 ### Polling cheaply: ETag
 
@@ -106,6 +110,10 @@ await famos.patch_task("task_...", notes="Bring cash", if_match=version)  # 412 
 - Every write sends an `Idempotency-Key` (generated per call; pass `idempotency_key=` to choose, so a retry after a
   network error does not happen twice).
 - `patch_*` changes only the arguments you pass. `None` clears a field that may be empty.
+
+Notes on the board can be changed and removed the same way (only their author, or someone who manages the board,
+may): `await famos.patch_note("board_note_...", text="Back at seven", ends_on=None)` and
+`await famos.delete_note("board_note_...")`.
 
 ### Acting for a member
 
@@ -149,7 +157,7 @@ FAMOS_URL=http://localhost:3000 FAMOS_TOKEN=famos_... uv run pytest -m integrati
 ```
 
 The integration tests change data in the family they run against (they create and delete their own tasks, events
-and items, and leave one note on the board). Point them at a scratch FamilyOS, with a key whose role may change the
+and items, and notes). Point them at a scratch FamilyOS, with a key whose role may change the
 calendar, lists and chores and whose mode is "Changes happen at once".
 
 ## License
