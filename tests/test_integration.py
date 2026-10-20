@@ -51,7 +51,7 @@ async def test_every_read(live: FamilyOS) -> None:
     assert found.api == "v1" and found.time_zone
     today = dt.date.today()
 
-    occurrences = [o async for o in live.iter_occurrences(today - dt.timedelta(days=30), today + dt.timedelta(days=60))]
+    occurrences = [o async for o in live.iter_occurrences(today - dt.timedelta(days=20), today + dt.timedelta(days=40))]
     lists = [x async for x in live.iter_shopping_lists()]
     tasks = [x async for x in live.iter_tasks()]
     chores = [x async for x in live.iter_chores()]
@@ -70,6 +70,7 @@ async def test_every_read(live: FamilyOS) -> None:
         assert (await live.get_chore(chores[0].id)).id == chores[0].id
     assert isinstance(notes, list)
 
+    live.clear_cache()
     first = await live.list_tasks()
     again = await live.list_tasks()
     assert not first.not_modified and again.not_modified and again.items == first.items

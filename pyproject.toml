@@ -30,6 +30,8 @@ Issues = "https://github.com/onurceri/familyos-client/issues"
 
 [dependency-groups]
 dev = [
+  # aioresponses 0.7.9 cannot build responses on aiohttp 3.14; the library itself runs on it.
+  "aiohttp<3.14",
   "aioresponses>=0.7.6",
   "mypy>=1.13",
   "pytest>=8",
