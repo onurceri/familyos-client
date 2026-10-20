@@ -175,8 +175,11 @@ async def test_shopping_cycle(live: FamilyOS) -> None:
     assert made(await live.patch_shopping_item(milk.id, quantity="2 l", category="dairy")).result.quantity == "2 l"
     assert made(await live.complete_shopping_item(milk.id)).result.done
     assert not made(await live.uncheck_shopping_item(milk.id)).result.done
-    for item in added.items:
-        made(await live.delete_shopping_item(item.id))
+    plain = made(await live.add_shopping_items_default(["familyos-client eggs"])).result
+    assert plain.list_id == default.id
+    for item in [*added.items, *plain.items]:
+        if item.title.startswith("familyos-client"):
+            made(await live.delete_shopping_item(item.id))
     remaining = [i.title async for i in live.iter_shopping_items(default.id)]
     assert not any(title.startswith("familyos-client") for title in remaining)
 

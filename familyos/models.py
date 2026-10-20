@@ -417,7 +417,7 @@ class ChoreCompletion(Model):
     member_id: str
     due_date: dt.date
     done_at: dt.datetime
-    undone_at: dt.datetime | None = None
+    undone_at: dt.datetime | None
 
 
 @dataclass(frozen=True)

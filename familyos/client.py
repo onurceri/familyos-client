@@ -163,6 +163,23 @@ def _error(status: int, body: Any, headers: Mapping[str, str]) -> FamilyOSError:
     return FamilyOSError(message, **extra)
 
 
+def _shopping_body(
+    items: Sequence[ShoppingItemInput | str | Mapping[str, Any]], when_on_list: str | None
+) -> dict[str, Any]:
+    lines: list[dict[str, Any]] = []
+    for item in items:
+        if isinstance(item, str):
+            lines.append({"title": item})
+        elif isinstance(item, ShoppingItemInput):
+            lines.append(_present({"title": item.title, "quantity": item.quantity, "category": item.category}))
+        else:
+            lines.append(dict(item))
+    body: dict[str, Any] = {"items": lines}
+    if when_on_list is not None:
+        body["whenOnList"] = when_on_list
+    return body
+
+
 class FamilyOS:
     """Talks to one FamilyOS server with one app key.
 
@@ -632,22 +649,31 @@ class FamilyOS:
         on_behalf_of: OnBehalfOf = UNSET,
     ) -> Applied[ShoppingItemsAdded] | Drafted:
         """Add items to a list. An item may be just its title. ``when_on_list`` is ``keep`` or ``update``."""
-        lines: list[dict[str, Any]] = []
-        for item in items:
-            if isinstance(item, str):
-                lines.append({"title": item})
-            elif isinstance(item, ShoppingItemInput):
-                lines.append(_present({"title": item.title, "quantity": item.quantity, "category": item.category}))
-            else:
-                lines.append(dict(item))
-        body: dict[str, Any] = {"items": lines}
-        if when_on_list is not None:
-            body["whenOnList"] = when_on_list
         return await self._write(
             "POST",
             f"/lists/shopping/lists/{_id(list_id)}/items",
             ShoppingItemsAdded.from_dict,
-            body=body,
+            body=_shopping_body(items, when_on_list),
+            if_match=if_match,
+            idempotency_key=idempotency_key,
+            on_behalf_of=on_behalf_of,
+        )
+
+    async def add_shopping_items_default(
+        self,
+        items: Sequence[ShoppingItemInput | str | Mapping[str, Any]],
+        *,
+        when_on_list: str | None = None,
+        if_match: IfMatch = None,
+        idempotency_key: str | None = None,
+        on_behalf_of: OnBehalfOf = UNSET,
+    ) -> Applied[ShoppingItemsAdded] | Drafted:
+        """Add items to the default shopping list, without naming it. Same items as ``add_shopping_items``."""
+        return await self._write(
+            "POST",
+            "/lists/shopping/items",
+            ShoppingItemsAdded.from_dict,
+            body=_shopping_body(items, when_on_list),
             if_match=if_match,
             idempotency_key=idempotency_key,
             on_behalf_of=on_behalf_of,

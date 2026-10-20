@@ -245,6 +245,16 @@ async def test_add_shopping_items_without_options(client: FamilyOS, mocked: aior
     assert body_of(mocked) == {"items": [{"title": "Eggs"}]}
 
 
+async def test_add_shopping_items_default(client: FamilyOS, mocked: aioresponses) -> None:
+    added = {"listId": "shop_list_1", "items": [shopping_item()], "addedIds": ["shop_item_1"]}
+    route(mocked, "POST", "/lists/shopping/items", status=201, payload=applied(added))
+    result = await client.add_shopping_items_default(
+        ["Eggs", ShoppingItemInput("Milk", quantity="2 l")], when_on_list="keep"
+    )
+    assert isinstance(result, Applied) and result.result.list_id == "shop_list_1"
+    assert body_of(mocked) == {"items": [{"title": "Eggs"}, {"title": "Milk", "quantity": "2 l"}], "whenOnList": "keep"}
+
+
 async def test_shopping_item_changes(client: FamilyOS, mocked: aioresponses) -> None:
     route(mocked, "PATCH", "/lists/shopping/items/shop_item_1", payload=applied(shopping_item(title="Oat milk")))
     await client.patch_shopping_item("shop_item_1", title="Oat milk", quantity=None, category="dairy")

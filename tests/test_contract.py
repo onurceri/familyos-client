@@ -189,9 +189,7 @@ def test_a_nested_model_has_the_fields_of_its_schema(path: str) -> None:
         schema = schema["items"]
     found = {snake(p) for p in properties(schema)}
     cls = NESTED[path]
-    # One completion model reads both the entry of a history (with `undoneAt`) and the one just made.
-    assert found <= field_names(cls) <= found | {"undone_at"}
-    assert field_names(cls) - found <= ({"undone_at"} if cls is models.ChoreCompletion else set())
+    assert field_names(cls) == found
 
 
 def test_the_app_inside_the_caller_matches() -> None:

@@ -65,6 +65,7 @@ The client never closes a session you give it. Without `session=` it makes one a
   change waits for a person to approve it. Follow a draft with `await famos.get_draft(draft_id)`.
 - **Every operation** of the API has a method of the same name in snake_case: `create_event`, `patch_event`,
   `replace_event`, `delete_event`, `get_event`, `list_occurrences`, `add_shopping_items`,
+  `add_shopping_items_default` (the default list, no id needed),
   `complete_shopping_item`, `uncheck_shopping_item`, `add_task`, `complete_task`, `reopen_task`, `complete_chore`,
   `undo_completion`, `create_note`, `discover`, `get_draft`, `changes` and the rest.
 

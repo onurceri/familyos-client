@@ -162,6 +162,7 @@ def completion(**over: Any) -> dict[str, Any]:
         "memberId": "member_1",
         "dueDate": "2026-10-20",
         "doneAt": "2026-10-20T08:00:00+03:00",
+        "undoneAt": None,
         **over,
     }
 
