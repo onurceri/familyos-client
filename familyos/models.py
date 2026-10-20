@@ -280,6 +280,8 @@ class Event(Model):
     tags: list[str]
     series_id: str | None = None
     recurrence_key: str | None = None
+    # Added in FamilyOS 0.4: the original start of a date moved out of its series.
+    series_recurrence_id: Moment | None = field(default=None, metadata=field_options(deserialize=parse_moment))
 
 
 @dataclass(frozen=True)
@@ -311,6 +313,8 @@ class Occurrence(Model):
     tags: list[str]
     series_id: str | None = None
     recurrence_key: str | None = None
+    # Added in FamilyOS 0.4: the original start of a date moved out of its series.
+    series_recurrence_id: Moment | None = field(default=None, metadata=field_options(deserialize=parse_moment))
 
 
 @dataclass(frozen=True)
@@ -447,6 +451,14 @@ class ChoreCompleted(Model):
 
 
 @dataclass(frozen=True)
+class NoteApp(Model):
+    """The connected app that put a note up on its own."""
+
+    id: str
+    name: str
+
+
+@dataclass(frozen=True)
 class BoardNote(Model):
     """A note on the family board."""
 
@@ -462,6 +474,8 @@ class BoardNote(Model):
     created_at: dt.datetime
     updated_at: dt.datetime
     seen_by: list[str]
+    # Added in FamilyOS 0.4.
+    created_by_app: NoteApp | None = None
 
 
 @dataclass(frozen=True)

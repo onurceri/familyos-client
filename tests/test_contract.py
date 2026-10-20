@@ -155,7 +155,10 @@ MODELS: dict[str, type] = {
 
 # Fields the API added after the first v1 server (FamilyOS 0.3.0). Older servers do not send them, so the
 # library must default them even where the newest document marks them required.
-ADDED_AFTER_FIRST_V1 = {"Discovery": {"acts_for"}}
+ADDED_AFTER_FIRST_V1 = {
+    "Discovery": {"acts_for"},
+    "BoardNote": {"created_by_app"},
+}
 
 
 @pytest.mark.parametrize("schema_name", sorted(MODELS))
@@ -189,6 +192,8 @@ NESTED = {
     "Discovery.caller": models.Caller,
     "Discovery.extensions": models.ExtensionInfo,
     "Discovery.operations": models.Operation,
+    "Discovery.actsFor": models.ActsFor,
+    "BoardNote.createdByApp": models.NoteApp,
 }
 
 
