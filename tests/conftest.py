@@ -192,6 +192,7 @@ def discovery() -> dict[str, Any]:
         "timeZone": TZ,
         "language": "en",
         "caller": {"app": {"id": "app_1", "name": "Hall", "mode": "apply"}, "memberId": None},
+        "actsFor": [{"memberId": "member_1", "name": "Leo"}],
         "extensions": [
             {"id": "calendar", "version": "0.3.0", "enabled": True},
             {"id": "board", "version": "0.3.0", "enabled": False},

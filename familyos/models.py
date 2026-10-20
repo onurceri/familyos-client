@@ -218,6 +218,14 @@ class Caller(Model):
 
 
 @dataclass(frozen=True)
+class ActsFor(Model):
+    """A member the app may act for: send `member_id` as the on-behalf-of member."""
+
+    member_id: str
+    name: str
+
+
+@dataclass(frozen=True)
 class ExtensionInfo(Model):
     """A FamilyOS feature and whether it is switched on."""
 
@@ -237,6 +245,7 @@ class Discovery(Model):
     caller: Caller
     extensions: list[ExtensionInfo]
     operations: list[Operation]
+    acts_for: list[ActsFor]
 
     def can(self, operation: str) -> bool:
         """Whether this key may call the operation (by its `operationId`, e.g. ``calendar.createEvent``)."""

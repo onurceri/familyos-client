@@ -35,6 +35,7 @@ async def test_discover(client: FamilyOS, mocked: aioresponses) -> None:
     assert found.family_os == "0.3.0"
     assert found.caller.app.name == "Hall"
     assert found.caller.member_id is None
+    assert [(m.member_id, m.name) for m in found.acts_for] == [("member_1", "Leo")]
     assert found.can("calendar.createEvent")
     assert not found.can("calendar.deleteEvent")
     assert found.enabled("calendar")

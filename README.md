@@ -34,6 +34,7 @@ async def main() -> None:
         famos = FamilyOS("https://family.example.com", "famos_...", session=session)
 
         info = await famos.discover()
+        # info.acts_for lists the people this key may act for (member_id, name)
         print(info.family_os, info.time_zone, info.caller.app.name)
 
         today = dt.date.today()

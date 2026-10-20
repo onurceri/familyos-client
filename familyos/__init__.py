@@ -16,6 +16,7 @@ from .exceptions import (
 )
 from .models import (
     UNSET,
+    ActsFor,
     Applied,
     BoardNote,
     BoardNoteDeleted,
@@ -66,6 +67,7 @@ __version__ = "0.2.0"
 
 __all__ = [
     "UNSET",
+    "ActsFor",
     "Applied",
     "AuthenticationError",
     "BadRequestError",
