@@ -54,7 +54,7 @@ markers = ["integration: needs a running FamilyOS (FAMOS_URL and FAMOS_TOKEN)"]
 omit = ["familyos/__init__.py"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]

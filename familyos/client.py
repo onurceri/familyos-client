@@ -95,10 +95,8 @@ def _json(value: Any) -> Any:
     """Turn dates, times and recurrences into what the API takes."""
     if isinstance(value, Recurrence):
         return value.to_api()
-    if isinstance(value, dt.datetime):
+    if isinstance(value, dt.date):  # a datetime is a date
         return format_moment(value)
-    if isinstance(value, dt.date):
-        return value.isoformat()
     if isinstance(value, dt.time):
         return format_time(value)
     if isinstance(value, Mapping):
@@ -294,7 +292,7 @@ class FamilyOS:
         )
         if status == 304 and cached is not None:
             self._cache.move_to_end(key)
-            return parse(cached[1], True)
+            return _decode(parse, cached[1], True)
         if status == 304:
             raise FamilyOSError("FamilyOS answered 304 for a request that had no ETag", status=304)
         etag = answer.get("ETag")
@@ -303,7 +301,7 @@ class FamilyOS:
             self._cache.move_to_end(key)
             while len(self._cache) > _CACHE_SIZE:
                 self._cache.popitem(last=False)
-        return parse(payload, False)
+        return _decode(parse, payload, False)
 
     async def _write(
         self,
@@ -325,13 +323,8 @@ class FamilyOS:
             method, path, params=params, body=body, headers=headers, on_behalf_of=on_behalf_of
         )
         if status == 202 or (isinstance(payload, Mapping) and payload.get("status") == "drafted"):
-            return Drafted(draft_id=payload["draftId"], time_zone=payload["timeZone"])
-        return Applied(
-            result=parse(payload["result"]),
-            time_zone=payload["timeZone"],
-            etag=answer.get("ETag"),
-            replayed=answer.get("Idempotent-Replayed") == "true",
-        )
+            return _decode(_drafted, payload)
+        return _decode(_applied, payload, parse, answer)
 
     def _page(self, cls: type[M]) -> Callable[[Any, bool], Page[M]]:
         def parse(body: Any, not_modified: bool) -> Page[M]:
@@ -367,12 +360,12 @@ class FamilyOS:
     async def discover(self, *, on_behalf_of: OnBehalfOf = UNSET) -> Discovery:
         """What this server is, and what this key may do now."""
         _, _, body = await self._send("GET", "/", on_behalf_of=on_behalf_of)
-        return Discovery.from_dict(body)
+        return _decode(Discovery.from_dict, body)
 
     async def get_draft(self, draft_id: str, *, on_behalf_of: OnBehalfOf = UNSET) -> Draft:
         """How a change that waited for a person ended. Only the app (and member) that made it can read it."""
         _, _, body = await self._send("GET", f"/drafts/{_id(draft_id)}", on_behalf_of=on_behalf_of)
-        return Draft.from_dict(body)
+        return _decode(Draft.from_dict, body)
 
     async def changes(self, since: int | None = None, *, on_behalf_of: OnBehalfOf = UNSET) -> Changes:
         """What changed since ``since`` (a cursor). Without it, answers where "now" is, with no changes.
@@ -381,7 +374,7 @@ class FamilyOS:
         everything again and start from ``changes()``.
         """
         _, _, body = await self._send("GET", "/changes", params={"since": since}, on_behalf_of=on_behalf_of)
-        return Changes.from_dict(body)
+        return _decode(Changes.from_dict, body)
 
     # --- calendar -----------------------------------------------------------------------------------------
 
@@ -626,9 +619,7 @@ class FamilyOS:
         self, list_id: str, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET
     ) -> AsyncIterator[ShoppingItem]:
         """Every item of a shopping list."""
-        return self._pages(
-            f"/lists/shopping/lists/{_id(list_id)}/items", ShoppingItem, {"limit": limit}, on_behalf_of
-        )
+        return self._pages(f"/lists/shopping/lists/{_id(list_id)}/items", ShoppingItem, {"limit": limit}, on_behalf_of)
 
     async def add_shopping_items(
         self,
@@ -646,9 +637,7 @@ class FamilyOS:
             if isinstance(item, str):
                 lines.append({"title": item})
             elif isinstance(item, ShoppingItemInput):
-                lines.append(
-                    _present({"title": item.title, "quantity": item.quantity, "category": item.category})
-                )
+                lines.append(_present({"title": item.title, "quantity": item.quantity, "category": item.category}))
             else:
                 lines.append(dict(item))
         body: dict[str, Any] = {"items": lines}
@@ -757,9 +746,7 @@ class FamilyOS:
             on_behalf_of=on_behalf_of,
         )
 
-    def iter_tasks(
-        self, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET
-    ) -> AsyncIterator[Task]:
+    def iter_tasks(self, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET) -> AsyncIterator[Task]:
         """Every task."""
         return self._pages("/lists/tasks", Task, {"limit": limit}, on_behalf_of)
 
@@ -942,9 +929,7 @@ class FamilyOS:
             on_behalf_of=on_behalf_of,
         )
 
-    def iter_chores(
-        self, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET
-    ) -> AsyncIterator[Chore]:
+    def iter_chores(self, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET) -> AsyncIterator[Chore]:
         """Every chore."""
         return self._pages("/chores", Chore, {"limit": limit}, on_behalf_of)
 
@@ -1008,9 +993,7 @@ class FamilyOS:
             on_behalf_of=on_behalf_of,
         )
 
-    def iter_notes(
-        self, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET
-    ) -> AsyncIterator[BoardNote]:
+    def iter_notes(self, *, limit: int | None = None, on_behalf_of: OnBehalfOf = UNSET) -> AsyncIterator[BoardNote]:
         """Every note on the board."""
         return self._pages("/board/notes", BoardNote, {"limit": limit}, on_behalf_of)
 
@@ -1035,6 +1018,27 @@ class FamilyOS:
             idempotency_key=idempotency_key,
             on_behalf_of=on_behalf_of,
         )
+
+
+def _decode[T](parse: Callable[..., T], *args: Any) -> T:
+    """Read an answer; one that is not shaped as the API says becomes a ``FamilyOSError``."""
+    try:
+        return parse(*args)
+    except (LookupError, TypeError, ValueError) as err:
+        raise FamilyOSError("FamilyOS answered something this library does not understand") from err
+
+
+def _drafted(payload: Mapping[str, Any]) -> Drafted:
+    return Drafted(draft_id=payload["draftId"], time_zone=payload["timeZone"])
+
+
+def _applied[T](payload: Mapping[str, Any], parse: Callable[[Any], T], answer: Mapping[str, str]) -> Applied[T]:
+    return Applied(
+        result=parse(payload["result"]),
+        time_zone=payload["timeZone"],
+        etag=answer.get("ETag"),
+        replayed=answer.get("Idempotent-Replayed") == "true",
+    )
 
 
 def _id(value: str) -> str:
