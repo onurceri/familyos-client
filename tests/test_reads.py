@@ -47,6 +47,14 @@ async def test_discover(client: FamilyOS, mocked: aioresponses) -> None:
     assert "X-FamilyOS-On-Behalf-Of" not in kwargs["headers"]
 
 
+async def test_discover_from_a_server_before_acts_for(client: FamilyOS, mocked: aioresponses) -> None:
+    payload = discovery()
+    del payload["actsFor"]
+    route(mocked, "GET", "/", payload=payload)
+    found = await client.discover()
+    assert found.acts_for == []
+
+
 async def test_get_draft(client: FamilyOS, mocked: aioresponses) -> None:
     route(
         mocked,

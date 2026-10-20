@@ -245,7 +245,8 @@ class Discovery(Model):
     caller: Caller
     extensions: list[ExtensionInfo]
     operations: list[Operation]
-    acts_for: list[ActsFor]
+    # Added in FamilyOS 0.4: absent from older servers, so it defaults to nobody.
+    acts_for: list[ActsFor] = field(default_factory=list)
 
     def can(self, operation: str) -> bool:
         """Whether this key may call the operation (by its `operationId`, e.g. ``calendar.createEvent``)."""

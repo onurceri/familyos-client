@@ -153,6 +153,11 @@ MODELS: dict[str, type] = {
 }
 
 
+# Fields the API added after the first v1 server (FamilyOS 0.3.0). Older servers do not send them, so the
+# library must default them even where the newest document marks them required.
+ADDED_AFTER_FIRST_V1 = {"Discovery": {"acts_for"}}
+
+
 @pytest.mark.parametrize("schema_name", sorted(MODELS))
 def test_a_model_has_the_fields_of_its_schema(schema_name: str) -> None:
     cls = MODELS[schema_name]
@@ -166,7 +171,9 @@ def test_a_model_has_the_fields_of_its_schema(schema_name: str) -> None:
     }
     # What the API always sends the library requires; what it may leave out the library defaults.
     # (ChoreDetail.history has a default so one model can also read a chore in a list.)
-    assert required - must_give <= ({"history"} if schema_name == "ChoreDetail" else set())
+    later = ADDED_AFTER_FIRST_V1.get(schema_name, set())
+    assert later.isdisjoint(must_give), f"{schema_name}: fields added after v1 must have a default"
+    assert required - must_give <= ({"history"} if schema_name == "ChoreDetail" else set()) | later
     assert must_give <= required
 
 
