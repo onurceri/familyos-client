@@ -30,7 +30,9 @@ class FamilyOSError(Exception):
         self.fields = fields or []
         """With ``bad_request``: what is wrong, as ``{"path": …, "message": …}``."""
         self.reason = reason
-        """With ``forbidden``: ``capability``, ``approval``, ``critical`` or ``on_behalf``."""
+        """Why it was refused. With ``forbidden``: ``capability``, ``approval``, ``critical`` or ``on_behalf``;
+        with ``unauthenticated``: ``paused`` when the key is valid but the app is paused in FamilyOS (it works
+        again after Resume), absent when the key is unknown, expired or revoked."""
         self.capability = capability
         self.current_version = current_version
         """With ``precondition_failed``: the version the thing has now."""
@@ -44,7 +46,7 @@ class BadRequestError(FamilyOSError):
 
 
 class AuthenticationError(FamilyOSError):
-    """No valid key (401)."""
+    """No valid key (401); ``reason`` is ``paused`` when the key is fine but its app is paused."""
 
 
 class ForbiddenError(FamilyOSError):

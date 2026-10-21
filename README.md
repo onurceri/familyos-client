@@ -130,7 +130,7 @@ All errors derive from `FamilyOSError` and carry the API's `code` (`ErrorCode`),
 
 | Exception | When |
 |---|---|
-| `AuthenticationError` | 401, no valid key |
+| `AuthenticationError` | 401, no valid key; `reason` is `paused` when the key is fine but the app is paused in FamilyOS (retry later, do not ask for a new key) |
 | `ForbiddenError` | 403; `reason` says why (`capability`, `approval`, `critical`, `on_behalf`) |
 | `NotFoundError` | 404, also when the feature is switched off (`code` is `feature_off`) |
 | `PreconditionFailed` | 412; `current_version` |

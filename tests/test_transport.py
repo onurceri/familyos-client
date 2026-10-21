@@ -143,6 +143,27 @@ async def test_an_error_with_an_unknown_status_and_empty_body(client: FamilyOS, 
     assert caught.value.code == ErrorCode.UNAUTHENTICATED
 
 
+async def test_a_paused_app_is_a_401_with_its_reason(client: FamilyOS, mocked: aioresponses) -> None:
+    route(
+        mocked,
+        "GET",
+        "/lists/tasks",
+        status=401,
+        payload=error("unauthenticated", "This app is paused in FamilyOS", reason="paused"),
+    )
+    with pytest.raises(AuthenticationError) as caught:
+        await client.list_tasks()
+    assert caught.value.reason == "paused"
+    assert caught.value.message == "This app is paused in FamilyOS"
+
+
+async def test_a_refused_key_has_no_reason(client: FamilyOS, mocked: aioresponses) -> None:
+    route(mocked, "GET", "/lists/tasks", status=401, payload=error("unauthenticated", "Unknown, expired or revoked"))
+    with pytest.raises(AuthenticationError) as caught:
+        await client.list_tasks()
+    assert caught.value.reason is None
+
+
 async def test_a_success_that_is_not_json(client: FamilyOS, mocked: aioresponses) -> None:
     route(mocked, "GET", "/lists/tasks", body="hello")
     with pytest.raises(FamilyOSError, match="not JSON"):
