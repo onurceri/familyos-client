@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "familyos-client"
-version = "0.2.1"
+version = "0.2.2"
 description = "Async Python client for the FamilyOS public API (calendar, lists, chores, board)"
 readme = "README.md"
 requires-python = ">=3.12"
